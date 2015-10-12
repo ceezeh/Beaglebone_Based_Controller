@@ -1,11 +1,11 @@
 #include "controller_input/sip_puff.h"
 #define THRESHOLD 500 //ms
 #define INVALIDCMD -2
-#define SPEEDINCR 0.05
-#define DIRINCR 0.05
+#define SPEEDINCR 0.2
+#define DIRINCR 0.1
 #define equals(x, y) (abs(x-y) < 0.001)
-#define LINSPEED 0.2
-#define ANGSPEED 0.2
+#define LINSPEED 0.7
+#define ANGSPEED 0.5
 #define TURNSPEED 0.05
 using namespace std;
 

@@ -1,11 +1,11 @@
 #include "controller_input/headarray.h"
 #define THRESHOLD 300 //ms
 #define INVALIDCMD -2
-#define SPEEDINCR 0.05
+#define SPEEDINCR 0.2
 #define DIRINCR 0.05
 #define equals(x, y) (abs(x-y) < 0.001)
-#define LINSPEED 0.2
-#define ANGSPEED 0.2
+#define LINSPEED 0.7
+#define ANGSPEED 0.5
 #define TURNSPEED 0.05
 using namespace std;
 
@@ -184,37 +184,6 @@ void HeadArray::sendcommands(float vt, float wt) {
 	//
 	this->cmd.header.stamp = ros::Time::now();
 
-//	// Check if last command was stationary linear velocity
-//	if (abs(this->prev_v) < 0.001) {
-//		if (requestTurn){
-//			this->cmd.twist.linear.x = 0.1;
-//			this->cmd.twist.angular.z = wt;
-////			this->w =wt;
-//		}
-//	} else {
-//		if (requestTurn){
-//			this->cmd.twist.linear.x = INVALIDCMD;
-//			this->cmd.twist.angular.z = wt;
-////			this->w = wt;
-//		}
-//	}
-//	if (!requestTurn) {
-//		// When we dont want to translate but we were rotating
-//		if ((abs(vt) < 0.001) && (abs(cmd.twist.angular.z) >0.001)){
-//			this->cmd.twist.linear.x = 0.1;
-//		} else if( (((abs(this->prev_v) < 0.001) && (vt == INVALIDCMD )) ||
-//				(abs(vt) < 0.001)) &&
-//				(abs(wt) < 0.001)){ // When we dont want to translate and do not want to rotate.
-//			this->cmd.twist.linear.x = 0;
-//			this->prev_v = vt;
-//		} else {
-//			this->cmd.twist.linear.x = vt;
-//			this->prev_v = vt;
-//		}
-//
-//		this->cmd.twist.angular.z =  INVALIDCMD;
-////		this->v =vt;
-//	}
 #define V_BIT (1 << 0)
 #define W_BIT (1 << 1)
 

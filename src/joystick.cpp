@@ -1,10 +1,9 @@
 #include "controller_input/joystick.h"
 #define AIN_PATH "/sys/devices/platform/ocp/44e0d000.tscadc/TI-am335x-adc/iio:device0/in_voltage"
 
-#define equals(x, y) (abs(x-y) < 0.008)
+#define equals(x, y) (abs(x-y) < 0.05)
 
 using namespace std;
-
 
 Joystick::Joystick(int speedpin, int dirpin, const char * topic, ros::NodeHandle &n_t) {
 	this->speed_ain = speedpin;
@@ -16,13 +15,14 @@ Joystick::Joystick(int speedpin, int dirpin, const char * topic, ros::NodeHandle
 	this->isrunning = false;
 	pthread_attr_init(&this->tattr);
 	pthread_attr_setdetachstate(&this->tattr,PTHREAD_CREATE_DETACHED);
+	this->getOffset();
 }
 
 int Joystick::start(int rate) {
 	// read
 	this->rate = rate;
 	this->isrunning = true;
-	command_pub = n.advertise < geometry_msgs::TwistStamped > (this->topic, 10);
+	command_pub = n.advertise < geometry_msgs::TwistStamped > (this->topic, 2);
 	// analog read polling started in new thread
 	if (pthread_create(&this->thread, &this->tattr, &JSthreadedPoll,
 			static_cast<void*>(this))) {
@@ -35,7 +35,7 @@ int Joystick::start(int rate) {
 
 void Joystick::pollOnce() {
 	float v = readAnalog(this->speed_ain);
-	float w = readAnalog(this->dir_ain);
+	float w = -readAnalog(this->dir_ain); //invert rotation.
 	cout << "[JS] v=" << v << " ,w=" << w << endl;
 	this->cmd.header.stamp = ros::Time::now();
 	this->cmd.twist.linear.x = v;
@@ -60,6 +60,32 @@ void Joystick::stop() {
 	this->command_pub.shutdown();
 }
 
+void Joystick::getOffset() {
+	int number;
+	int nos[2] = {this->speed_ain,this->dir_ain};
+
+	for (int i=0; i < 2; i++) {
+		int count = 0;
+		number = nos[i];
+		int acc = 0;
+		while ( count < 40) {
+			stringstream ss;
+			ss << AIN_PATH << number << "_raw";
+			fstream fs;
+			fs.open(ss.str().c_str(), fstream::in);
+			fs >> number;
+			fs.close();
+			acc += number;
+			count ++;
+		}
+		acc /= count;
+		cout <<"[JS] mid point=" << acc << endl;
+		if (i == 0) this->speed_offset = acc;
+		if (i == 1) this->dir_offset = acc;
+	}
+
+}
+
 float Joystick::readAnalog(int number) {
 	stringstream ss;
 	ss << AIN_PATH << number << "_raw";
@@ -80,13 +106,25 @@ float Joystick::readAnalog(int number) {
 	 * neutral = 1707
 	 * min = 580
 	 */
+//	static int count;
+//	static float acc;
+//
+//	if ( count < 100) {
+//		acc +=number;
+//		count ++;
+//	} else if ( count == 100) {
+//		acc /= count;
+//	} else {
+//		cout <<"[JS] mid point=" << acc << endl;
+//	}
 	float ret;
-	if (number > 1707) {
+	float offset = (number==this->speed_ain)?this->speed_offset:this->dir_offset;
+	if (number > offset) {
 		// 1100 = 1
-		ret = float(number-1707) * 0.0004545454545;//0.0009090909091 *0.5; //*1/(2768-1707)
+		ret = float(number-offset) *0.001201527442;// 0.001021298326;//0.0009090909091 *0.5  * 0.5; //*1/(2686-1707)
 	} else {
 		// 1180
-		ret = float(number-1707) * 0.0004237288136; //0.0008474576271 *0.5; //*1/(2768-1707)
+		ret = float(number-offset) * 0.0009687106461;//0.0008718395815; //0.0008474576271 *0.5 * 0.5; //*1/(1707-560)
 	}
 	return equals(ret,0)? 0:ret;
 }

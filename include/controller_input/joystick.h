@@ -23,6 +23,8 @@ private:
 	void pollOnce();
 	int rate; // polling rate in Hz
 	int speed_ain, dir_ain;
+	int speed_offset, dir_offset;
+	void getOffset();
 
 	bool isrunning;
 	pthread_t thread;

@@ -2,6 +2,7 @@
 #include "std_msgs/String.h"
 #include "geometry_msgs/Twist.h"
 #include <unistd.h>
+#include <vector>
 
 #include <pthread.h>
 #include <sstream>
