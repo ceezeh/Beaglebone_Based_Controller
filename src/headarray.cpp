@@ -164,7 +164,7 @@ void HeadArray::neutralSA() {
 	this->state = neutral;
 	this->neutral_time = gettime_ms();
 	sendcommands(0, INVALIDCMD);
-	// cout <<"ha neutral state" <<endl;
+	ROS_INFO ("ha neutral state" );
 	//reset cmds.
 }
 
@@ -183,6 +183,7 @@ void HeadArray::goslowSA() {
 void HeadArray::sendcommands(float vt, float wt) {
 	//
 	this->cmd.header.stamp = ros::Time::now();
+	this->cmd.header.frame_id = "headarray";
 
 #define V_BIT (1 << 0)
 #define W_BIT (1 << 1)
@@ -193,22 +194,22 @@ void HeadArray::sendcommands(float vt, float wt) {
 			this->cmd.twist.linear.x = vt;
 			this->cmd.twist.angular.z = INVALIDCMD;
 			this->prev_v = vt;
-			// cout <<"1"<<endl;
+			ROS_INFO ("1");
 		} else if ((equals(vt, 0)) && equals(wt, INVALIDCMD)) {
 			this->cmd.twist.linear.x = 0;
 			this->cmd.twist.angular.z = INVALIDCMD;
 			this->prev_v = 0;
-			// cout <<"2"<<endl;
+			ROS_INFO ("2");
 		} else if ((!equals(wt, 0)) && equals(vt, INVALIDCMD)){
 			this->cmd.twist.linear.x = TURNSPEED;
 			this->cmd.twist.angular.z = wt;
 			this->prev_w = wt;
-			// cout <<"3"<<endl;
+			ROS_INFO ("3");
 		} else if  ((equals(wt, 0)) && equals(vt, INVALIDCMD)) {
 			this->cmd.twist.linear.x = 0;
 			this->cmd.twist.angular.z = 0;
 			this->prev_w = 0;
-			// cout <<"4"<<endl;
+			ROS_INFO ("4");
 		}
 		break;
 	case V_BIT: // V is non-stationary and W is stationary
@@ -216,22 +217,22 @@ void HeadArray::sendcommands(float vt, float wt) {
 			this->cmd.twist.linear.x = vt;
 			this->cmd.twist.angular.z = INVALIDCMD;
 			this->prev_v = vt;
-			// cout <<"5"<<endl;
+			ROS_INFO ("5");
 		} else if ((equals(vt, 0)) && equals(wt, INVALIDCMD)) {
 			this->cmd.twist.linear.x = 0;
 			this->cmd.twist.angular.z = INVALIDCMD;
 			this->prev_v = 0;
-			// cout <<"6"<<endl;
+			ROS_INFO ("6");
 		} else if  ((!equals(wt, 0)) && equals(vt, INVALIDCMD)) {
 			this->cmd.twist.linear.x = INVALIDCMD;
 			this->cmd.twist.angular.z = wt;
 			this->prev_w = wt;
-			// cout <<"7"<<endl;
+			ROS_INFO ("7");
 		} else if ((equals(wt, 0)) && equals(vt, INVALIDCMD)) {
 			this->cmd.twist.linear.x = INVALIDCMD;
 			this->cmd.twist.angular.z = 0;
 			this->prev_w = 0;
-			// cout <<"8"<<endl;
+			ROS_INFO ("8");
 		}
 		break;
 	case W_BIT: // V is stationary and W is non-stationary
@@ -239,22 +240,22 @@ void HeadArray::sendcommands(float vt, float wt) {
 			this->cmd.twist.linear.x = vt;
 			this->cmd.twist.angular.z = INVALIDCMD;
 			this->prev_v = vt;
-			// cout <<"9"<<endl;
+			ROS_INFO ("9");
 		} else if ((equals(vt, 0)) && equals(wt, INVALIDCMD)) {
 			this->cmd.twist.linear.x = TURNSPEED;
 			this->cmd.twist.angular.z = INVALIDCMD;
 			this->prev_v = 0;
-			// cout <<"10"<<endl;
+			ROS_INFO ("10");
 		} else if ((!equals(wt, 0)) && equals(vt, INVALIDCMD)) {
 			this->cmd.twist.linear.x = INVALIDCMD;
 			this->cmd.twist.angular.z = wt;
 			this->prev_w = wt;
-			// cout <<"11"<<endl;
+			ROS_INFO ("11");
 		} else if ((equals(wt, 0)) && equals(vt, INVALIDCMD)) {
 			this->cmd.twist.linear.x = 0;
 			this->cmd.twist.angular.z = 0;
 			this->prev_w = 0;
-			// cout <<"12"<<endl;
+			ROS_INFO ("12");
 		}
 		break;
 	case V_BIT + W_BIT: // V is non-stationary and W is non-stationary
@@ -262,25 +263,26 @@ void HeadArray::sendcommands(float vt, float wt) {
 			this->cmd.twist.linear.x = vt;
 			this->cmd.twist.angular.z = INVALIDCMD;
 			this->prev_v = vt;
-			// cout <<"13"<<endl;
+			ROS_INFO ("13");
 		} else if ((equals(vt, 0)) && equals(wt, INVALIDCMD)) {
 			this->cmd.twist.linear.x = TURNSPEED;
 			this->cmd.twist.angular.z = INVALIDCMD;
 			this->prev_v = 0;
-			// cout <<"14"<<endl;
+			ROS_INFO ("14");
 		} else if ((!equals(wt, 0)) && equals(vt, INVALIDCMD)) {
 			this->cmd.twist.linear.x = INVALIDCMD;
 			this->cmd.twist.angular.z = wt;
 			this->prev_w = wt;
-			// cout <<"15"<<endl;
+			ROS_INFO ("15");
 		} else if ((equals(wt, 0)) && equals(vt, INVALIDCMD)) {
 			this->cmd.twist.linear.x = INVALIDCMD;
 			this->cmd.twist.angular.z = 0;
 			this->prev_w = 0;
-			// cout <<"16"<<endl;
+			ROS_INFO ("16");
 		}
 		break;
 	}
+	this->cmd.twist.angular.z = (equals(this->cmd.twist.angular.z,INVALIDCMD))? this->cmd.twist.angular.z:-this->cmd.twist.angular.z;
 	this->command_pub.publish(this->cmd);
 }
 
@@ -298,7 +300,7 @@ void HeadArray::transition () {
 				sendcommands(LINSPEED, INVALIDCMD);
 			}
 
-			// cout <<"ha move state" <<endl;
+			ROS_INFO ("ha move state" );
 		} else if (this->event == quickpress) {
 			// Check if in neutral state for a minimum time to cancel jerk
 			if ((gettime_ms() -this->neutral_time) > THRESHOLD/2) {
@@ -306,7 +308,7 @@ void HeadArray::transition () {
 				// start timing
 				this->statetimer->start(boost::bind(&HeadArray::onCExceedThres, this), this->threshold);
 				this->timing_time = gettime_ms();
-				// cout <<"ha timing state" <<endl;
+				ROS_INFO ("ha timing state");
 			}
 		}
 		break;
@@ -323,12 +325,12 @@ void HeadArray::transition () {
 			if ((now-this->timing_time) < THRESHOLD) {
 				this->state = goslow;
 				goslowSA();
-				// cout <<"ha goslow state" <<endl;
+				ROS_INFO ("ha goslow state" );
 			}
 		} else if (this->event == thres) {
 			this->state = toggle;
 			//execute action and ...
-			// cout <<" ha toggle state" <<endl;
+			ROS_INFO (" ha toggle state");
 			forwardToggle =!forwardToggle;
 			// go to neutral
 			neutralSA();
@@ -345,6 +347,7 @@ void HeadArray::transition () {
 		neutralSA();
 		break;
 	default:
+		neutralSA();
 			break;
 	}
 }

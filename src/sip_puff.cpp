@@ -397,6 +397,7 @@ void Sippuff::transition() {
 void Sippuff::sendcommands(float vt, float wt) {
 	//
 	this->cmd.header.stamp = ros::Time::now();
+	this->cmd.header.frame_id = "sippuff";
 #define V_BIT (1 << 0)
 #define W_BIT (1 << 1)
 
@@ -503,5 +504,6 @@ void Sippuff::sendcommands(float vt, float wt) {
 		}
 		break;
 	}
+	this->cmd.twist.angular.z = (equals(this->cmd.twist.angular.z,INVALIDCMD))? this->cmd.twist.angular.z:-this->cmd.twist.angular.z;
 	this->command_pub.publish(this->cmd);
 }

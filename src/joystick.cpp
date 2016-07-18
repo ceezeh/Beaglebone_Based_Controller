@@ -38,6 +38,7 @@ void Joystick::pollOnce() {
 	float w = -readAnalog(this->dir_ain); //invert rotation.
 	cout << "[JS] v=" << v << " ,w=" << w << endl;
 	this->cmd.header.stamp = ros::Time::now();
+	this->cmd.header.frame_id ="joystick";
 	this->cmd.twist.linear.x = v;
 	this->cmd.twist.angular.z = w;
 	this->command_pub.publish(this->cmd);
