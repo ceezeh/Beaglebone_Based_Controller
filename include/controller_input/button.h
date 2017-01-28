@@ -23,7 +23,9 @@ class Button {
 
 public:
 	Button(int pin_t, boost::function<void (void)> qpcb=NULL,
-			boost::function<void (void)> hcb=NULL, boost::function<void (void)> hrcb=NULL);
+			boost::function<void (void)> hcb=NULL, boost::function<void (void)> hrcb=NULL,
+			boost::function<void (void)> pcb=NULL,
+			boost::function<void (void)> rcb=NULL);
 	~Button();
 	void set_quickpress_duration(int dur) {
 			quickpress_duration = dur;
@@ -32,7 +34,7 @@ public:
 	void stop();
 
 public:
-	typedef enum {neutral_0, timing, quickpress, hold, suspend} ButtonState;
+	typedef enum {neutral_0, timing, hold, suspend} ButtonState;
 	typedef enum {risingedge, fallingedge, exceedthres, None} ButtonEvent;
 private:
 
@@ -51,13 +53,20 @@ private:
 	// State Entry Actions
 	void timingSA();
 	void neutralSA();
-	void quickPressSA();
 	void holdSA();
 
+
+	//Actions
+	void quickPressAction();
+	void pressAction();
+	void hold_releaseAction();
+	void releaseAction();
 	//external callbacks for internal states
+	boost::function<void (void)> pressCallback;
 	boost::function<void (void)> quickpressCallback;
 	boost::function<void (void)> holdCallback;
 	boost::function<void (void)> hold_releaseCallback;
+	boost::function<void (void)> releaseCallback;
 
 
 };

@@ -16,10 +16,10 @@ class HeadArray {
 
 public:
 	typedef enum {
-		neutral, timing, toggle, goslow, move, suspend
+		neutral, timing, move, suspend
 	} State;
 	typedef enum {
-		nill, quickpress, hold, thres, hold_release
+		nill, quickpress, hold, hold_release
 	} Event;
 
 	const float slowspeed[2] = { 0.05, 0.05 }; //v,w
@@ -34,7 +34,6 @@ public:
 	void stop(); // suspends the head-array interface.
 	void start();
 	void reset();
-	void setThreshold(int dur);
 private:
 	ros::Publisher command_pub;
 	ros::NodeHandle n;
@@ -42,19 +41,11 @@ private:
 	/*these are ratios of the maximum speed that we will issue to the wheelchair.
 	 * but that will change in different places.
 	 */
-	float w; // w represents the velocity when moving so it is non zero.
-	float prev_v, prev_w;
+	float v, w;
+
 	// This is needed since we change w alongside v.
 
-	void setw(float wt) {
-		if (wt > 1)
-			wt = 1;
-		if (wt < 0)
-			wt = 0;
-		this->w = wt;
-	}
-	geometry_msgs::TwistStamped cmd;
-	void sendcommands(float v, float w);
+	void sendcommands();
 	bool forwardToggle;
 
 	State state;
@@ -65,29 +56,29 @@ private:
 
 	int threshold;
 
-	void transition();
+	void linearTransition();
 	StateTimer *statetimer;
 
 	// Event callbacks for centre button.
 	void onCQuickpress();
 	void onCHold();
-	void onCExceedThres();
 	void onCHold_release();
 
-	// Callbacks for left and right buttons.
-	void onRQuickpress();
-	void onRHold();
-	void onRHold_release();
+	// Actions for Centre Button.
+	void cToggle();
 
-	void onLQuickpress();
-	void onLHold();
-	void onLHold_release();
+	// Callbacks for left and right buttons.
+	void onRPress();
+	void onRRelease();
+
+	void onLPress();
+	void onLRelease();
 
 	// State Entry Actions();
 	timestamp_t neutral_time;
 	timestamp_t timing_time;
 	void neutralSA();
-	void goslowSA();
+	void moveSA();
 
 };
 #endif

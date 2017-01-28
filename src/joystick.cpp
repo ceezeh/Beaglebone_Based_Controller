@@ -1,7 +1,7 @@
 #include "controller_input/joystick.h"
 #define AIN_PATH "/sys/devices/platform/ocp/44e0d000.tscadc/TI-am335x-adc/iio:device0/in_voltage"
 
-#define equals(x, y) (abs(x-y) < 0.05)
+#define equals(x, y) (abs(x-y) < 0.04)
 
 using namespace std;
 
@@ -38,7 +38,7 @@ void Joystick::pollOnce() {
 	float w = -readAnalog(this->dir_ain); //invert rotation.
 	cout << "[JS] v=" << v << " ,w=" << w << endl;
 	this->cmd.header.stamp = ros::Time::now();
-	this->cmd.header.frame_id ="joystick";
+	this->cmd.header.frame_id ="JS";
 	this->cmd.twist.linear.x = v;
 	this->cmd.twist.angular.z = w;
 	this->command_pub.publish(this->cmd);
@@ -127,5 +127,12 @@ float Joystick::readAnalog(int number) {
 		// 1180
 		ret = float(number-offset) * 0.0009687106461;//0.0008718395815; //0.0008474576271 *0.5 * 0.5; //*1/(1707-560)
 	}
+	cout << "Pre-ret: " << ret;
+	 if (ret > 1) ret = 1;
+        if (ret < -1) ret = -1;
+	ret = tan(.5*M_PI*ret)/5;
+	if (ret > 1) ret = 1;
+	if (ret < -1) ret = -1;
+	cout << ", Post-ret: "<<ret<<endl;
 	return equals(ret,0)? 0:ret;
 }

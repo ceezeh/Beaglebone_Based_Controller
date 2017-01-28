@@ -198,3 +198,6 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 
 add_executable(controller_input src/controller_input.cpp src/headarray.cpp src/sip_puff.cpp src/joystick.cpp src/button.cpp src/statetimer.cpp src/gpio.cpp)
 target_link_libraries(controller_input LINK_PUBLIC ${catkin_LIBRARIES}  EBBLibrary)
+
+add_executable(repeater src/repeater.cpp )
+target_link_libraries(repeater LINK_PUBLIC ${catkin_LIBRARIES})

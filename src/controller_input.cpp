@@ -12,25 +12,30 @@
 
 using namespace std;
 
-typedef enum {
-	joystick, headarray, sippuff
-} Interface;
-Interface interface = sippuff;
-// Headarray pins = 48,31,30
-
 int main(int argc, char **argv) {
-	ros::init(argc, argv, "controller_input");
+	string ns = "controller_input";
+	string topic = "input";
+	ros::init(argc, argv, ns.c_str());
 	ros::NodeHandle n;
-	ros::Rate loop_rate(100);
-//	HeadArray headarray(48, 31, 30, "user_command", n);
-//	headarray.start();
-//	  Sippuff sippuff(50, 60, "user_command",n );
-//	  sippuff.start();
-	  Joystick joystick(0,2,"user_command",n);
-	  joystick.start(20);
+	ros::Rate loop_rate(20);
+
+	string interface = ns + "/interface";
+	n.getParam(interface.c_str(), interface);
+	cout << "Interface: :" << interface << endl;
+
+	HeadArray headarray(48, 31, 30, topic.c_str(), n);
+	Sippuff sippuff(50, 60, topic.c_str(), n);
+	Joystick joystick(0, 2, topic.c_str(), n);
+
+	if (interface == "HA") {
+		headarray.start();
+	} else if (interface == "SP") {
+		sippuff.start();
+	} else if (interface == "JS") {
+		joystick.start(20);
+	}
 
 	while (ros::ok()) {
-		ros::spinOnce();
 		loop_rate.sleep();
 	}
 }

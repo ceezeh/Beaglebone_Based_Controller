@@ -11,44 +11,42 @@ using namespace std;
 
 using namespace exploringBB;
 
-HeadArray::HeadArray(int left_pin, int centre_pin, int right_pin, const char * topic, ros::NodeHandle &n_t ) {
-	n =n_t;
-	this->topic= topic;
-//	command_pub = n.advertise<geometry_msgs::Twist>( this->topic, 10);
+HeadArray::HeadArray(int left_pin, int centre_pin, int right_pin,
+		const char * topic, ros::NodeHandle &n_t) {
+	n = n_t;
+	this->topic = topic;
 
-//	v=w= 0;
-//	forwardToggle = false;
+
 
 	statetimer = new StateTimer();
-//	event = nill;
-//	neutral_reset = true;
+
 	threshold = THRESHOLD;
-	// enter neutral state
 
-	centreBtn = new Button(centre_pin, boost::bind( &HeadArray::onCQuickpress, this),
-			boost::bind( &HeadArray::onCHold, this),
-	boost::bind( &HeadArray::onCHold_release, this));
+	centreBtn = new Button(centre_pin,
+			boost::bind(&HeadArray::onCQuickpress, this),
+			boost::bind(&HeadArray::onCHold, this),
+			boost::bind(&HeadArray::onCHold_release, this));
 
-	leftBtn = new Button(left_pin, boost::bind( &HeadArray::onLQuickpress, this),
-			boost::bind( &HeadArray::onLHold, this),
-	boost::bind( &HeadArray::onLHold_release, this));
-	rightBtn = new Button(right_pin, boost::bind( &HeadArray::onRQuickpress, this),
-			boost::bind( &HeadArray::onRHold, this),
-	boost::bind( &HeadArray::onRHold_release, this));
+	leftBtn = new Button(left_pin, NULL,NULL,NULL,
+			boost::bind(&HeadArray::onLPress, this),
+			boost::bind(&HeadArray::onLRelease, this));
+	rightBtn = new Button(right_pin,NULL,NULL,NULL,
+			boost::bind(&HeadArray::onRPress, this),
+			boost::bind(&HeadArray::onRRelease, this));
 
 }
 
 HeadArray::~HeadArray() {
-	delete(this->statetimer);
-	delete(this->centreBtn);
-	delete(this->rightBtn);
-	delete(this->leftBtn);
+	delete (this->statetimer);
+	delete (this->centreBtn);
+	delete (this->rightBtn);
+	delete (this->leftBtn);
 }
 
 void HeadArray::start() {
-	prev_v = prev_w= w= 0;
+	v=w= 0;
 	forwardToggle = false;
-	command_pub = n.advertise<geometry_msgs::TwistStamped>(this->topic, 10);
+	command_pub = n.advertise < geometry_msgs::TwistStamped > (this->topic, 10);
 	neutralSA();
 	centreBtn->start();
 	rightBtn->start();
@@ -75,279 +73,98 @@ void HeadArray::reset() {
 void HeadArray::onCQuickpress() {
 	this->statetimer->cancel();
 	this->event = quickpress;
-	this->transition();
+	this->linearTransition();
 }
 
 void HeadArray::onCHold_release() {
 	this->statetimer->cancel();
 	this->event = hold_release;
-	this->transition();
+	this->linearTransition();
 }
 
 void HeadArray::onCHold() {
 	this->statetimer->cancel();
 	this->event = hold;
-	this->transition();
-}
-
-void HeadArray::onCExceedThres() {
-	this->statetimer->cancel();
-	this->event = thres;
-	this->transition();
+	this->linearTransition();
 }
 // **********Event callbacks for Right button ********
-void HeadArray::onRQuickpress() {
-	if ((this->state == move)||(this->state == goslow)) {
-		if (this->forwardToggle) {
-			sendcommands(this->prev_v-=SPEEDINCR, INVALIDCMD);
-//			update rotation speed since we won't use it yet. Do we need to slow down rotation speed?
-			setw(this->w -= DIRINCR);
-		} else {
-			sendcommands(this->prev_v+=SPEEDINCR, INVALIDCMD);
-			//update rotation speed since we won't use it yet. Do we need to slow down rotation speed?
 
-			setw(this->w  += DIRINCR);
-		}
-	}
+void HeadArray::onRPress() {
+		this->w = 1;
+		sendcommands();
 }
-void HeadArray::onRHold() {
-	if ((this->state == move) ||(this->state == neutral)){
-		/* Send the previous speed if it was not zero.
-		 * This lets us keep the previous speed setting until we go back to neutral position
-		 * where everything resets.
-		 */
-
-		sendcommands(INVALIDCMD,this->w);
-
-	} else if (this->state == goslow) {
-		sendcommands(INVALIDCMD,this->slowspeed[1]);
-	}
+void HeadArray::onRRelease() {
+	this->w =0;
+	sendcommands();
 }
-void HeadArray::onRHold_release() {
-	sendcommands(INVALIDCMD,0);
+void HeadArray::onLPress() {
+		this->w = -1;
+		sendcommands();
 }
-// **********Event callbacks for Right button ********
-void HeadArray::onLQuickpress() {
-	if ((this->state == move)||(this->state == goslow)) {
-		if (this->forwardToggle) {
-			sendcommands(this->prev_v+=SPEEDINCR, INVALIDCMD);
-//			update rotation speed since we won't use it yet. Do we need to slow down rotation speed?
-			setw(this->w += DIRINCR);
-		} else {
-			sendcommands(this->prev_v-=SPEEDINCR, INVALIDCMD);
-			//update rotation speed since we won't use it yet. Do we need to slow down rotation speed?
-
-			setw(this->w  -= DIRINCR);
-		}
-	}
-}
-void HeadArray::onLHold() {
-	if ((this->state == move) ||(this->state == neutral)){
-		/* Send the previous speed if it was not zero.
-		 * This lets us keep the previous speed setting until we go back to neutral position
-		 * where everything resets.
-		 */
-
-		sendcommands(INVALIDCMD,-this->w);
-
-	} else if (this->state == goslow) {
-		sendcommands(INVALIDCMD,-this->slowspeed[1]);
-	}
-}
-void HeadArray::onLHold_release() {
-	sendcommands(INVALIDCMD,0);
+void HeadArray::onLRelease() {
+	this->w =0;
+	sendcommands();
 }
 
 // **********State entry actions ********
 void HeadArray::neutralSA() {
-	setw(ANGSPEED); // next time rotation is called it will start from default speed.
 	this->state = neutral;
 	this->neutral_time = gettime_ms();
-	sendcommands(0, INVALIDCMD);
-	ROS_INFO ("ha neutral state" );
-	//reset cmds.
+	this->v = 0;
+	sendcommands();
+	ROS_INFO("ha neutral state");
 }
 
-void HeadArray::goslowSA() {
-	//CHECK which button entered this state.
-	setw(this->slowspeed[1]);
+void HeadArray::moveSA() {
+	this->state = move;
 	if (this->forwardToggle) {
-		sendcommands(-this->slowspeed[0], INVALIDCMD);
+		//move backwards
+		this->v = -1;
 	} else {
-		sendcommands(this->slowspeed[0], INVALIDCMD);
+		this->v = 1;
 	}
+	sendcommands();
+	ROS_INFO("ha move state");
 }
 
+
+void HeadArray::cToggle() {
+	this->forwardToggle =! this->forwardToggle;
+}
 // in charge of sending commands to ensure that wheelchair will always
 // turn in spot when only direction commands are given.
-void HeadArray::sendcommands(float vt, float wt) {
+void HeadArray::sendcommands() {
 	//
-	this->cmd.header.stamp = ros::Time::now();
-	this->cmd.header.frame_id = "headarray";
+	geometry_msgs::TwistStamped cmd;
+	cmd.header.stamp = ros::Time::now();
+	cmd.header.frame_id = "HA";
 
-#define V_BIT (1 << 0)
-#define W_BIT (1 << 1)
+	cmd.twist.linear.x = this->v;
+	cmd.twist.angular.z = this->w;
 
-	switch( (equals(prev_v, 0)? 0: V_BIT ) | (equals(prev_w, 0)? 0 :W_BIT)) {
-	case 0: //WC is not moving
-		if ((!equals(vt, 0)) && equals(wt, INVALIDCMD)){
-			this->cmd.twist.linear.x = vt;
-			this->cmd.twist.angular.z = INVALIDCMD;
-			this->prev_v = vt;
-			ROS_INFO ("1");
-		} else if ((equals(vt, 0)) && equals(wt, INVALIDCMD)) {
-			this->cmd.twist.linear.x = 0;
-			this->cmd.twist.angular.z = INVALIDCMD;
-			this->prev_v = 0;
-			ROS_INFO ("2");
-		} else if ((!equals(wt, 0)) && equals(vt, INVALIDCMD)){
-			this->cmd.twist.linear.x = TURNSPEED;
-			this->cmd.twist.angular.z = wt;
-			this->prev_w = wt;
-			ROS_INFO ("3");
-		} else if  ((equals(wt, 0)) && equals(vt, INVALIDCMD)) {
-			this->cmd.twist.linear.x = 0;
-			this->cmd.twist.angular.z = 0;
-			this->prev_w = 0;
-			ROS_INFO ("4");
-		}
-		break;
-	case V_BIT: // V is non-stationary and W is stationary
-		if ((!equals(vt, 0)) && equals(wt, INVALIDCMD)){
-			this->cmd.twist.linear.x = vt;
-			this->cmd.twist.angular.z = INVALIDCMD;
-			this->prev_v = vt;
-			ROS_INFO ("5");
-		} else if ((equals(vt, 0)) && equals(wt, INVALIDCMD)) {
-			this->cmd.twist.linear.x = 0;
-			this->cmd.twist.angular.z = INVALIDCMD;
-			this->prev_v = 0;
-			ROS_INFO ("6");
-		} else if  ((!equals(wt, 0)) && equals(vt, INVALIDCMD)) {
-			this->cmd.twist.linear.x = INVALIDCMD;
-			this->cmd.twist.angular.z = wt;
-			this->prev_w = wt;
-			ROS_INFO ("7");
-		} else if ((equals(wt, 0)) && equals(vt, INVALIDCMD)) {
-			this->cmd.twist.linear.x = INVALIDCMD;
-			this->cmd.twist.angular.z = 0;
-			this->prev_w = 0;
-			ROS_INFO ("8");
-		}
-		break;
-	case W_BIT: // V is stationary and W is non-stationary
-		if ((!equals(vt, 0)) && equals(wt, INVALIDCMD)){
-			this->cmd.twist.linear.x = vt;
-			this->cmd.twist.angular.z = INVALIDCMD;
-			this->prev_v = vt;
-			ROS_INFO ("9");
-		} else if ((equals(vt, 0)) && equals(wt, INVALIDCMD)) {
-			this->cmd.twist.linear.x = TURNSPEED;
-			this->cmd.twist.angular.z = INVALIDCMD;
-			this->prev_v = 0;
-			ROS_INFO ("10");
-		} else if ((!equals(wt, 0)) && equals(vt, INVALIDCMD)) {
-			this->cmd.twist.linear.x = INVALIDCMD;
-			this->cmd.twist.angular.z = wt;
-			this->prev_w = wt;
-			ROS_INFO ("11");
-		} else if ((equals(wt, 0)) && equals(vt, INVALIDCMD)) {
-			this->cmd.twist.linear.x = 0;
-			this->cmd.twist.angular.z = 0;
-			this->prev_w = 0;
-			ROS_INFO ("12");
-		}
-		break;
-	case V_BIT + W_BIT: // V is non-stationary and W is non-stationary
-		if ((!equals(vt, 0)) && equals(wt, INVALIDCMD)){
-			this->cmd.twist.linear.x = vt;
-			this->cmd.twist.angular.z = INVALIDCMD;
-			this->prev_v = vt;
-			ROS_INFO ("13");
-		} else if ((equals(vt, 0)) && equals(wt, INVALIDCMD)) {
-			this->cmd.twist.linear.x = TURNSPEED;
-			this->cmd.twist.angular.z = INVALIDCMD;
-			this->prev_v = 0;
-			ROS_INFO ("14");
-		} else if ((!equals(wt, 0)) && equals(vt, INVALIDCMD)) {
-			this->cmd.twist.linear.x = INVALIDCMD;
-			this->cmd.twist.angular.z = wt;
-			this->prev_w = wt;
-			ROS_INFO ("15");
-		} else if ((equals(wt, 0)) && equals(vt, INVALIDCMD)) {
-			this->cmd.twist.linear.x = INVALIDCMD;
-			this->cmd.twist.angular.z = 0;
-			this->prev_w = 0;
-			ROS_INFO ("16");
-		}
-		break;
-	}
-	this->cmd.twist.angular.z = (equals(this->cmd.twist.angular.z,INVALIDCMD))? this->cmd.twist.angular.z:-this->cmd.twist.angular.z;
-	this->command_pub.publish(this->cmd);
+	this->command_pub.publish(cmd);
 }
 
-
-
-void HeadArray::transition () {
-	switch(this->state) {
+void HeadArray::linearTransition() {
+	switch (this->state) {
 	case neutral:
 		if (this->event == hold) {
 			this->state = move;
-			// perform action
-			if (this->forwardToggle) {
-				sendcommands(-LINSPEED, INVALIDCMD);
-			} else {
-				sendcommands(LINSPEED, INVALIDCMD);
-			}
-
-			ROS_INFO ("ha move state" );
+			moveSA();
 		} else if (this->event == quickpress) {
 			// Check if in neutral state for a minimum time to cancel jerk
-			if ((gettime_ms() -this->neutral_time) > THRESHOLD/2) {
-				this->state = timing;
-				// start timing
-				this->statetimer->start(boost::bind(&HeadArray::onCExceedThres, this), this->threshold);
-				this->timing_time = gettime_ms();
-				ROS_INFO ("ha timing state");
+			if ((gettime_ms() - this->neutral_time) > THRESHOLD / 2) {
+				cToggle();
 			}
 		}
 		break;
 	case move:
 		if (this->event == hold_release) {
-			this->state = neutral;
-
 			neutralSA();
 		}
-		break;
-	case timing:
-		if (this->event == hold) {
-			timestamp_t now = gettime_ms();
-			if ((now-this->timing_time) < THRESHOLD) {
-				this->state = goslow;
-				goslowSA();
-				ROS_INFO ("ha goslow state" );
-			}
-		} else if (this->event == thres) {
-			this->state = toggle;
-			//execute action and ...
-			ROS_INFO (" ha toggle state");
-			forwardToggle =!forwardToggle;
-			// go to neutral
-			neutralSA();
-		}
-		break;
-	case goslow:
-		if (this->event == hold_release){
-			this->state = neutral;
-			neutralSA();
-		}
-		break;
-	case toggle:
-		this->state = neutral;
-		neutralSA();
 		break;
 	default:
 		neutralSA();
-			break;
+		break;
 	}
 }

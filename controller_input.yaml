@@ -1,2 +1,2 @@
 interface_topic: "user_command" # topic to send commands from interfaces like joystick.  Values are between -1 to 1. We then scale it according to the wheelchair's max speeds. Use like    interface_sub = n.subscribe("user_command", 3,  &SharedDWA::usercommandCallback, this);
-current_interface: "js" #currently selected interface
+interface: "JS" #currently selected interface
