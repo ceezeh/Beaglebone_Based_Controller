@@ -16,8 +16,6 @@ HeadArray::HeadArray(int left_pin, int centre_pin, int right_pin,
 	n = n_t;
 	this->topic = topic;
 
-
-
 	statetimer = new StateTimer();
 
 	threshold = THRESHOLD;
@@ -27,10 +25,10 @@ HeadArray::HeadArray(int left_pin, int centre_pin, int right_pin,
 			boost::bind(&HeadArray::onCHold, this),
 			boost::bind(&HeadArray::onCHold_release, this));
 
-	leftBtn = new Button(left_pin, NULL,NULL,NULL,
+	leftBtn = new Button(left_pin, NULL, NULL, NULL,
 			boost::bind(&HeadArray::onLPress, this),
 			boost::bind(&HeadArray::onLRelease, this));
-	rightBtn = new Button(right_pin,NULL,NULL,NULL,
+	rightBtn = new Button(right_pin, NULL, NULL, NULL,
 			boost::bind(&HeadArray::onRPress, this),
 			boost::bind(&HeadArray::onRRelease, this));
 
@@ -44,7 +42,7 @@ HeadArray::~HeadArray() {
 }
 
 void HeadArray::start() {
-	v=w= 0;
+	v = w = 0;
 	forwardToggle = false;
 	command_pub = n.advertise < geometry_msgs::TwistStamped > (this->topic, 10);
 	neutralSA();
@@ -90,19 +88,19 @@ void HeadArray::onCHold() {
 // **********Event callbacks for Right button ********
 
 void HeadArray::onRPress() {
-		this->w = 1;
-		sendcommands();
+	this->w = -1;
+	sendcommands();
 }
 void HeadArray::onRRelease() {
-	this->w =0;
+	this->w = 0;
 	sendcommands();
 }
 void HeadArray::onLPress() {
-		this->w = -1;
-		sendcommands();
+	this->w = 1;
+	sendcommands();
 }
 void HeadArray::onLRelease() {
-	this->w =0;
+	this->w = 0;
 	sendcommands();
 }
 
@@ -127,9 +125,18 @@ void HeadArray::moveSA() {
 	ROS_INFO("ha move state");
 }
 
-
 void HeadArray::cToggle() {
-	this->forwardToggle =! this->forwardToggle;
+	this->forwardToggle = !this->forwardToggle;
+
+	geometry_msgs::TwistStamped cmd;
+	cmd.header.stamp = ros::Time::now();
+	cmd.header.frame_id = "HA";
+
+	cmd.twist.linear.x = INVALIDCMD;
+	cmd.twist.linear.y = (this->forwardToggle) ? -1 : 1;
+	cmd.twist.angular.z = INVALIDCMD;
+
+	this->command_pub.publish(cmd);
 }
 // in charge of sending commands to ensure that wheelchair will always
 // turn in spot when only direction commands are given.
@@ -140,6 +147,7 @@ void HeadArray::sendcommands() {
 	cmd.header.frame_id = "HA";
 
 	cmd.twist.linear.x = this->v;
+	cmd.twist.linear.y = (this->forwardToggle) ? -1 : 1;
 	cmd.twist.angular.z = this->w;
 
 	this->command_pub.publish(cmd);

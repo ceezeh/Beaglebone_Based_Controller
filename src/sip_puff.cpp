@@ -58,11 +58,11 @@ void Sippuff::incrementSpeed() {
 }
 
 void Sippuff::turnLeft() {
-	this->w = -1;
+	this->w = 1;
 	sendcommands();
 }
 void Sippuff::turnRight() {
-	this->w = 1;
+	this->w = -1;
 	sendcommands();
 }
 void Sippuff::stopTurn() {

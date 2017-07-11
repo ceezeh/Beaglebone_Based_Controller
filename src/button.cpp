@@ -1,6 +1,6 @@
 #include "controller_input/button.h"
 
-#define QUICKPRESS_DUR 300 // 100ms
+#define QUICKPRESS_DUR 600 // 100ms
 
 using namespace std;
 using namespace exploringBB;
@@ -44,7 +44,6 @@ void Button::initialise(int pin_t) {
 	this->quickpress_duration = QUICKPRESS_DUR; //100ms
 	// Initialize states and transition.
 //	start();
-
 }
 //
 //
@@ -167,6 +166,7 @@ void Button::transition() {
 		}
 		break;
 	default:
+		neutralSA();
 		break;
 	}
 

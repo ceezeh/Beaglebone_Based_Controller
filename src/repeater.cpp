@@ -6,7 +6,7 @@
 geometry_msgs::TwistStamped input;
 
 void inputCallback(geometry_msgs::TwistStamped cmd) {
-
+	input.header = cmd.header;
 	if (!equals(cmd.twist.linear.x, INVALIDCMD)) {
 		// update v
 		input.twist.linear.x = cmd.twist.linear.x;
@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
 
 	ros::Publisher input_pub = n.advertise < geometry_msgs::TwistStamped
 			> ("user_command", 1);
-	ros::Subscriber input_sub = n.subscribe("input", 100, inputCallback);
+	ros::Subscriber input_sub = n.subscribe("input", 1, inputCallback);
 
 	ros::Rate loop_rate(20);
 
